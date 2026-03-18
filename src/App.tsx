@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'motion/react';
-import { MapPin, Phone, Clock, Star, Utensils, Coffee, ShoppingBag, MessageCircle, Menu, X, ChevronRight } from 'lucide-react';
+import { MapPin, Phone, Clock, Star, Utensils, Coffee, ShoppingBag, MessageCircle, Menu, X, ChevronRight, ShoppingCart, Plus, Minus } from 'lucide-react';
 
 // Custom Cursor Component
 function CustomCursor() {
@@ -330,7 +330,21 @@ const menuItems = [
   }
 ];
 
-function MenuSection() {
+function MenuSection({ cart, setCart }: { cart: Record<number, number>, setCart: React.Dispatch<React.SetStateAction<Record<number, number>>> }) {
+  const updateQuantity = (id: number, delta: number) => {
+    setCart(prev => {
+      const current = prev[id] || 0;
+      const next = Math.max(0, current + delta);
+      const newCart = { ...prev };
+      if (next === 0) {
+        delete newCart[id];
+      } else {
+        newCart[id] = next;
+      }
+      return newCart;
+    });
+  };
+
   return (
     <section id="menu" className="py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -381,9 +395,21 @@ function MenuSection() {
                 <p className="text-gray-600 text-sm mb-4 line-clamp-2">{item.description}</p>
                 <div className="flex justify-between items-center mt-auto">
                   <span className="text-lg font-bold text-brand-red">{item.price}</span>
-                  <button className="w-8 h-8 rounded-full bg-brand-dark text-white flex items-center justify-center hover:bg-brand-red transition-colors">
-                    <ChevronRight size={16} />
-                  </button>
+                  {cart[item.id] ? (
+                    <div className="flex items-center gap-3 bg-brand-cream border border-brand-red rounded-full px-2 py-1">
+                      <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 flex items-center justify-center rounded-full bg-brand-red/10 text-brand-red hover:bg-brand-red hover:text-white transition-colors">
+                        <Minus size={14} />
+                      </button>
+                      <span className="font-bold text-brand-dark text-sm w-4 text-center">{cart[item.id]}</span>
+                      <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 flex items-center justify-center rounded-full bg-brand-red/10 text-brand-red hover:bg-brand-red hover:text-white transition-colors">
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => updateQuantity(item.id, 1)} className="bg-brand-red text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-brand-dark transition-colors shadow-md">
+                      Add to Cart
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -674,6 +700,29 @@ function Footer() {
   );
 }
 
+// Sticky Cart Button
+function StickyCart({ totalItems }: { totalItems: number }) {
+  return (
+    <AnimatePresence>
+      {totalItems > 0 && (
+        <motion.div
+          className="fixed bottom-6 left-6 z-50 w-14 h-14 bg-brand-dark text-brand-gold rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform border border-brand-gold/30 cursor-pointer"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0, opacity: 0 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <ShoppingCart size={24} />
+          <div className="absolute -top-2 -right-2 bg-brand-red text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-brand-cream">
+            {totalItems}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 // Floating WhatsApp Button
 function WhatsAppButton() {
   return (
@@ -694,6 +743,9 @@ function WhatsAppButton() {
 }
 
 export default function App() {
+  const [cart, setCart] = useState<Record<number, number>>({});
+  const totalItems = Object.values(cart).reduce((sum, q) => sum + q, 0);
+
   return (
     <div className="min-h-screen bg-brand-cream font-sans selection:bg-brand-gold selection:text-brand-dark">
       <CustomCursor />
@@ -701,12 +753,13 @@ export default function App() {
       <main>
         <Hero />
         <About />
-        <MenuSection />
+        <MenuSection cart={cart} setCart={setCart} />
         <Services />
         <Reviews />
         <Contact />
       </main>
       <Footer />
+      <StickyCart totalItems={totalItems} />
       <WhatsAppButton />
     </div>
   );
